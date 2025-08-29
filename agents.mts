@@ -1,48 +1,38 @@
 import dotenv from "dotenv";
 
-
 dotenv.config();
 
 process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
-process.env.TAVILY_API_KEY = process.env.TAVILY_API_KEY || "";
 
-if (!process.env.OPENAI_API_KEY || !process.env.TAVILY_API_KEY) {
-  throw new Error("OPENAI_API_KEY and TAVILY_API_KEY must be set");
+if (!process.env.OPENAI_API_KEY) {
+  throw new Error("OPENAI_API_KEY must be set");
 }
 
-import { TavilySearchResults } from "@langchain/community/tools/tavily_search";
+import { MultiServerMCPClient } from "@langchain/mcp-adapters";
 import { ChatOpenAI } from "@langchain/openai";
-import { MemorySaver } from "@langchain/langgraph";
 import { HumanMessage } from "@langchain/core/messages";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 
 // Define the tools for the agent to use
-const agentTools = [new TavilySearchResults({ maxResults: 3 })];
-const agentModel = new ChatOpenAI({ temperature: 0 });
-
-// Initialize memory to persist state between graph runs
-const agentCheckpointer = new MemorySaver();
-const agent = createReactAgent({
-  llm: agentModel,
-  tools: agentTools,
-  checkpointSaver: agentCheckpointer,
+const mcpClient = new MultiServerMCPClient({
+  servers: [
+    {
+      name: "browserAI",
+      url: "https://browserai.com/mcp-example",
+    },
+  ],
 });
 
-// Now it's time to use!
-const agentFinalState = await agent.invoke(
-  { messages: [new HumanMessage("what is the current weather in sf")] },
-  { configurable: { thread_id: "42" } },
+const agentModel = new ChatOpenAI({ temperature: 0.5, model: "gpt-5-nano" });
+
+const agent = createReactAgent({
+  llm: agentModel,
+  tools: await mcpClient.getTools(),
+});
+
+const agentResponse = await agent.invoke(
+  { messages: [new HumanMessage("instructions for ai")] },
+  { configurable: { thread_id: "1337" } },
 );
 
-console.log(
-  agentFinalState.messages[agentFinalState.messages.length - 1].content,
-);
-
-const agentNextState = await agent.invoke(
-  { messages: [new HumanMessage("what about ny")] },
-  { configurable: { thread_id: "42" } },
-);
-
-console.log(
-  agentNextState.messages[agentNextState.messages.length - 1].content,
-);
+console.log(agentResponse.messages[agentResponse.messages.length - 1].content);
