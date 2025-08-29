@@ -13,14 +13,11 @@ import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage } from "@langchain/core/messages";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 
-// Define the tools for the agent to use
 const mcpClient = new MultiServerMCPClient({
-  servers: [
-    {
-      name: "browserAI",
-      url: "https://browserai.com/mcp-example",
-    },
-  ],
+  math: {
+    transport: "http",
+    url: "http://localhost:3000/mcp/"
+  }
 });
 
 const agentModel = new ChatOpenAI({ temperature: 0.5, model: "gpt-5-nano" });
