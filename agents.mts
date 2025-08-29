@@ -1,6 +1,5 @@
 import dotenv from "dotenv";
 
-
 dotenv.config();
 
 process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
@@ -11,27 +10,36 @@ if (!process.env.OPENAI_API_KEY || !process.env.TAVILY_API_KEY) {
 }
 
 import { TavilySearchResults } from "@langchain/community/tools/tavily_search";
+import { MultiServerMCPClient } from "@langchain/mcp-adapters";
+
 import { ChatOpenAI } from "@langchain/openai";
 import { MemorySaver } from "@langchain/langgraph";
 import { HumanMessage } from "@langchain/core/messages";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 
 // Define the tools for the agent to use
-const agentTools = [new TavilySearchResults({ maxResults: 3 })];
-const agentModel = new ChatOpenAI({ temperature: 0 });
+const mcpClient = new MultiServerMCPClient({
+  servers: [
+    {
+      name: "browserAI",
+      url: "https://browserai.com/mcp-example",
+    },
+  ],
+});
+
+const agentModel = new ChatOpenAI({ temperature: 0.2, model: "gpt-5-nano" });
 
 // Initialize memory to persist state between graph runs
 const agentCheckpointer = new MemorySaver();
 const agent = createReactAgent({
   llm: agentModel,
-  tools: agentTools,
+  tools: await mcpClient.getTools(),
   checkpointSaver: agentCheckpointer,
 });
 
-// Now it's time to use!
 const agentFinalState = await agent.invoke(
-  { messages: [new HumanMessage("what is the current weather in sf")] },
-  { configurable: { thread_id: "42" } },
+  { messages: [new HumanMessage("instructions for ai")] },
+  { configurable: { thread_id: "1337" } },
 );
 
 console.log(
@@ -39,8 +47,8 @@ console.log(
 );
 
 const agentNextState = await agent.invoke(
-  { messages: [new HumanMessage("what about ny")] },
-  { configurable: { thread_id: "42" } },
+  { messages: [new HumanMessage("follow up on the instructions")] },
+  { configurable: { thread_id: "1337" } },
 );
 
 console.log(
