@@ -1,0 +1,15 @@
+{
+  "scripts": {
+    "start": "tsx agents.mts"
+  },
+  "dependencies": {
+    "@langchain/community": "^0.3.53",
+    "@langchain/core": "^0.3.72",
+    "@langchain/langgraph": "^0.4.7",
+    "@langchain/openai": "^0.6.9",
+    "dotenv": "^17.2.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.5"
+  }
+}
